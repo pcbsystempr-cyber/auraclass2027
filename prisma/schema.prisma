@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String?
+  image         String?
+  role          String    @default("estudiante")
+  seccion       String?
+  carnet        String?
+  telefono      String?
+  bio           String?
+  instagram     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  cuotas        Cuota[]
+  posts         Post[]
+  postLikes     PostLike[]
+  comments      Comment[]
+  promotorOf    Promotor?
+  nominaciones  Nominacion[]
+  votos         Voto[]
+  certificados  Certificado[]
+  directivaRol    DirectivaRol?
+  directivaConfig DirectivaConfig?
+  anuarioPerfil   AnuarioPerfil?
+  sessions        Session[]
+  accounts        Account[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Cuota {
+  id          String   @id @default(cuid())
+  userId      String
+  mes         String
+  anio        Int
+  monto       Float
+  pagado      Float    @default(0)
+  estado      String   @default("pendiente")
+  fechaPago   DateTime?
+  metodo      String?
+  nota        String?
+  comprobante String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Actividad {
+  id          String   @id @default(cuid())
+  titulo      String
+  descripcion String
+  fecha       DateTime
+  lugar       String?
+  tipo        String   @default("general")
+  imagen      String?
+  recaudacion Float    @default(0)
+  meta        Float?
+  estado      String   @default("proxima")
+  rsvps       Rsvp[]
+  fotos       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Rsvp {
+  id          String    @id @default(cuid())
+  actividadId String
+  userId      String
+  estado      String    @default("asistire")
+  actividad   Actividad @relation(fields: [actividadId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  userId      String
+  actividadId String?
+  titulo      String?
+  contenido   String?
+  imagen      String?
+  video       String?
+  tipo        String    @default("foto")
+  likes       PostLike[]
+  comments    Comment[]
+  user        User      @relation(fields: [userId], references: [id])
+  actividad   Actividad? @relation(fields: [actividadId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PostLike {
+  id      String @id @default(cuid())
+  postId  String
+  userId  String
+  post    Post   @relation(fields: [postId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  contenido String
+  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Promotor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  codigo      String   @unique
+  ventas      Int      @default(0)
+  meta        Int      @default(10)
+  comision    Float    @default(0)
+  nivel       String   @default("bronce")
+  activo      Boolean  @default(true)
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EstudianteMes {
+  id           String       @id @default(cuid())
+  mes          String
+  anio         Int
+  ganadorId    String?
+  activa       Boolean      @default(true)
+  nominaciones Nominacion[]
+  votos        Voto[]
+  createdAt    DateTime     @default(now())
+  @@unique([mes, anio])
+}
+
+model Nominacion {
+  id              String        @id @default(cuid())
+  estudianteMesId String
+  nominadoId      String
+  nominadorId     String
+  razon           String
+  aprobada        Boolean       @default(false)
+  estudianteMes   EstudianteMes @relation(fields: [estudianteMesId], references: [id])
+  nominado        User          @relation(fields: [nominadoId], references: [id])
+  createdAt       DateTime      @default(now())
+}
+
+model Voto {
+  id              String        @id @default(cuid())
+  estudianteMesId String
+  votanteId       String
+  candidatoId     String
+  estudianteMes   EstudianteMes @relation(fields: [estudianteMesId], references: [id])
+  votante         User          @relation(fields: [votanteId], references: [id])
+  createdAt       DateTime      @default(now())
+  @@unique([estudianteMesId, votanteId])
+}
+
+model Certificado {
+  id          String   @id @default(cuid())
+  userId      String
+  tipo        String
+  titulo      String
+  descripcion String?
+  fecha       DateTime @default(now())
+  firmante    String?
+  cargo       String?
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model DirectivaRol {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  cargo       String
+  descripcion String?
+  orden       Int      @default(0)
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Presupuesto {
+  id        String   @id @default(cuid())
+  concepto  String
+  tipo      String
+  monto     Float
+  categoria String
+  fecha     DateTime @default(now())
+  nota      String?
+  createdAt DateTime @default(now())
+}
+
+model Config {
+  id        String   @id @default(cuid())
+  clave     String   @unique
+  valor     String
+  updatedAt DateTime @updatedAt
+}
+
+model Patrocinador {
+  id          String   @id @default(cuid())
+  nombre      String
+  empresa     String?
+  tipo        String   @default("particular") // particular, empresa, institucion, padre
+  nivel       String   @default("bronce")     // bronce, plata, oro, platino
+  monto       Float
+  descripcion String?
+  instagram   String?
+  telefono    String?
+  website     String?
+  visible     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Aviso {
+  id        String   @id @default(cuid())
+  titulo    String
+  contenido String
+  tipo      String   @default("info") // info, urgente, evento, logro
+  visible   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AnuarioPerfil {
+  id       String @id @default(cuid())
+  userId   String @unique
+  frase    String?
+  logro    String?
+  apodo    String?
+  destino  String?
+  user     User   @relation(fields: [userId], references: [id])
+}
+
+model DirectivaConfig {
+  id          String @id @default(cuid())
+  userId      String @unique
+  cargo       String
+  descripcion String?
+  instagram   String?
+  telefono    String?
+  orden       Int    @default(0)
+  user        User   @relation(fields: [userId], references: [id])
+}
